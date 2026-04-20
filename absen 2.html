@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Absensi Guru SDI Panggajoang</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Arial', sans-serif; background-color: #f8f9fa; }
+    .container { max-width: 1200px; margin: 20px auto; padding: 20px; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,.1); border-radius: 8px; }
+    h1 { text-align: center; color: #343a40; margin-bottom: 30px; }
+    .form-group { margin-bottom: 20px; }
+    label { font-weight: bold; color: #495057; }
+    .btn-primary { background-color: #007bff; border-color: #007bff; }
+    .btn-primary:hover { background-color: #0069d9; border-color: #0062cc; }
+    .table { margin-top: 20px; }
+    .table th, .table td { text-align: center; vertical-align: middle; }
+    .aksi-btn { margin: 2px; }
+    .header { background-color: #343a40; color: #fff; padding: 20px 0; margin-bottom: 30px; border-radius: 8px; }
+    .header h1 { color: #fff; }
+    .btn-success { background-color: #28a745; border-color: #28a745; }
+    .btn-success:hover { background-color: #218838; border-color: #1e7e34; }
+    .btn-danger { background-color: #dc3545; border-color: #dc3545; }
+    .btn-danger:hover { background-color: #c82333; border-color: #bd2130; }
+    .modal-content { border-radius: 8px; }
+    .modal-header { background-color: #343a40; color: #fff; border-bottom: none; }
+    .modal-title { color: #fff; }
+    .modal-footer { border-top: none; }
+    .small-muted { font-size: .85rem; color: #6c757d; }
+    /* print styles for rekap */
+    @media print {
+      body * { visibility: hidden; }
+      #printable, #printable * { visibility: visible; }
+      #printable { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Absensi Guru SDI Panggajoang</h1>
+    </header>
+
+    <!-- Controls -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <button id="btnTambahGuru" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahGuruModal">
+        <i class="fas fa-plus"></i> Tambah Guru
+      </button>
+
+      <button id="btnAbsensiHarian" type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#absensiModal">
+        <i class="fas fa-calendar-check"></i> Absensi Harian
+      </button>
+
+      <button id="btnRekap" class="btn btn-success">
+        <i class="fas fa-file-pdf"></i> Rekap Absensi PDF
+      </button>
+
+      <div class="ms-auto small-muted align-self-center">
+        <span id="lastSavedInfo"></span>
+      </div>
+    </div>
+
+    <!-- Tabel Guru dan status terakhir -->
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped" id="tabelGuru">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama Guru</th>
+            <th>Tanggal Terakhir</th>
+            <th>Status Terakhir</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyGuru">
+          <!-- Diisi oleh JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Tambah Guru -->
+    <div class="modal fade" id="tambahGuruModal" tabindex="-1" aria-labelledby="tambahGuruModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="tambahGuruModalLabel">Tambah Data Guru</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formTambahGuru" onsubmit="return false;">
+              <div class="mb-3">
+                <label for="namaGuru" class="form-label">Nama Guru</label>
+                <input type="text" class="form-control" id="namaGuru" placeholder="Masukkan Nama Guru" required />
+              </div>
+              <div class="mb-3">
+                <label for="catatanGuru" class="form-label">Catatan (opsional)</label>
+                <input type="text" class="form-control" id="catatanGuru" placeholder="Contoh: wali kelas 1A" />
+              </div>
+              <div class="small-muted">Nama guru akan disimpan ke penyimpanan lokal browser (localStorage).</div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button id="simpanGuruBtn" type="button" class="btn btn-primary">Simpan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Edit Guru -->
+    <div class="modal fade" id="editGuruModal" tabindex="-1" aria-labelledby="editGuruModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editGuruModalLabel">Edit Data Guru</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formEditGuru" onsubmit="return false;">
+              <input type="hidden" id="editIndex" />
+              <div class="mb-3">
+                <label for="editNamaGuru" class="form-label">Nama Guru</label>
+                <input type="text" class="form-control" id="editNamaGuru" required />
+              </div>
+              <div class="mb-3">
+                <label for="editCatatanGuru" class="form-label">Catatan (opsional)</label>
+                <input type="text" class="form-control" id="editCatatanGuru" />
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button id="simpanEditBtn" type="button" class="btn btn-primary">Simpan Perubahan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Absensi Harian -->
+    <div class="modal fade" id="absensiModal" tabindex="-1" aria-labelledby="absensiModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="absensiModalLabel">Absensi Harian - <span id="absensiDate"></span></h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="absensiListContainer" class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Guru</th>
+                    <th>Status</th>
+                    <th>Catatan</th>
+                  </tr>
+                </thead>
+                <tbody id="absensiList">
+                  <!-- Diisi oleh JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="small-muted">Pilih status untuk setiap guru lalu klik "Simpan Absensi" untuk menyimpan ke riwayat.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            <button id="simpanAbsensiBtn" type="button" class="btn btn-success">Simpan Absensi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden printable area for rekap -->
+    <div id="printable" style="display:none;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Key localStorage
+    const STORAGE_KEYS = {
+      GURU: 'sdi_panggajoang_guru',
+      ABSENSI: 'sdi_panggajoang_absensi' // array of {name, date, status, note}
+    };
+
+    // Utility: get today's date string YYYY-MM-DD
+    function todayDate() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Load data from localStorage
+    function loadData() {
+      const rawGuru = localStorage.getItem(STORAGE_KEYS.GURU);
+      const rawAbsensi = localStorage.getItem(STORAGE_KEYS.ABSENSI);
+      const guru = rawGuru ? JSON.parse(rawGuru) : [];
+      const absensi = rawAbsensi ? JSON.parse(rawAbsensi) : [];
+      return { guru, absensi };
+    }
+
+    // Save guru list
+    function saveGuruList(guru) {
+      localStorage.setItem(STORAGE_KEYS.GURU, JSON.stringify(guru));
+      document.getElementById('lastSavedInfo').textContent = `Tersimpan: ${new Date().toLocaleString()}`;
+    }
+
+    // Save absensi records
+    function saveAbsensiRecords(absensi) {
+      localStorage.setItem(STORAGE_KEYS.ABSENSI, JSON.stringify(absensi));
+      document.getElementById('lastSavedInfo').textContent = `Tersimpan: ${new Date().toLocaleString()}`;
+    }
+
+    // Render guru table (menampilkan status terakhir jika ada)
+    function renderGuruTable() {
+      const { guru, absensi } = loadData();
+      const tbody = document.getElementById('tbodyGuru');
+      tbody.innerHTML = '';
+      guru.forEach((g, i) => {
+        // cari status terakhir untuk guru ini
+        const records = absensi.filter(r => r.name === g.name).sort((a,b) => b.date.localeCompare(a.date));
+        const last = records.length ? records[0] : null;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td class="text-start">${escapeHtml(g.name)}${g.note ? ' <div class="small-muted">(' + escapeHtml(g.note) + ')</div>' : ''}</td>
+          <td>${last ? escapeHtml(last.date) : '-'}</td>
+          <td>${last ? escapeHtml(last.status) : '-'}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary aksi-btn" data-action="absen" data-index="${i}" title="Absensi cepat"><i class="fas fa-check"></i></button>
+            <button class="btn btn-sm btn-warning aksi-btn" data-action="edit" data-index="${i}" title="Edit"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-danger aksi-btn" data-action="delete" data-index="${i}" title="Hapus"><i class="fas fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Escape HTML to avoid injection
+    function escapeHtml(text) {
+      if (!text && text !== 0) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Add new guru
+    function addGuru(name, note) {
+      if (!name || !name.trim()) return false;
+      const data = loadData();
+      // Prevent duplicate exact names
+      if (data.guru.some(g => g.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+        alert('Nama guru sudah ada.');
+        return false;
+      }
+      data.guru.push({ name: name.trim(), note: note ? note.trim() : '' });
+      saveGuruList(data.guru);
+      renderGuruTable();
+      return true;
+    }
+
+    // Edit guru
+    function editGuru(index, newName, newNote) {
+      const data = loadData();
+      if (!data.guru[index]) return false;
+      // Check duplicate name (except current)
+      const nameLower = newName.trim().toLowerCase();
+      if (data.guru.some((g, idx) => idx !== index && g.name.trim().toLowerCase() === nameLower)) {
+        alert('Nama guru sudah ada.');
+        return false;
+      }
+      data.guru[index].name = newName.trim();
+      data.guru[index].note = newNote ? newNote.trim() : '';
+      // Update absensi records to reflect name change
+      data.absensi = data.absensi.map(r => r.name === data.guru[index].name ? { ...r, name: newName.trim() } : r);
+      saveGuruList(data.guru);
+      saveAbsensiRecords(data.absensi);
+      renderGuruTable();
+      return true;
+    }
+
+    // Delete guru
+    function deleteGuru(index) {
+      const data = loadData();
+      if (!data.guru[index]) return;
+      const confirmed = confirm(`Hapus guru "${data.guru[index].name}"? Aksi ini juga akan menghapus riwayat absensi terkait.`);
+      if (!confirmed) return;
+      const nameToRemove = data.guru[index].name;
+      data.guru.splice(index, 1);
+      // hapus riwayat absensi untuk guru ini
+      data.absensi = data.absensi.filter(r => r.name !== nameToRemove);
+      saveGuruList(data.guru);
+      saveAbsensiRecords(data.absensi);
+      renderGuruTable();
+    }
+
+    // Quick single-row attendance (popup small select)
+    function quickAbsensi(index) {
+      const data = loadData();
+      const g = data.guru[index];
+      if (!g) return;
+      const status = prompt(`Absensi cepat untuk "${g.name}" (Hadir / Sakit / Izin / Alfa). Ketik status lalu OK.`, 'Hadir');
+      if (!status) return;
+      const date = todayDate();
+      data.absensi.push({ name: g.name, date, status: status.trim(), note: g.note || '' });
+      saveAbsensiRecords(data.absensi);
+      renderGuruTable();
+      alert('Absensi tersimpan.');
+    }
+
+    // Prepare absensi modal list
+    function prepareAbsensiModal() {
+      const { guru } = loadData();
+      const tbody = document.getElementById('absensiList');
+      tbody.innerHTML = '';
+      guru.forEach((g, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="width:50px">${i + 1}</td>
+          <td class="text-start">${escapeHtml(g.name)}${g.note ? ' <div class="small-muted">(' + escapeHtml(g.note) + ')</div>' : ''}</td>
+          <td style="width:260px">
+            <select class="form-select form-select-sm status-select" data-index="${i}">
+              <option value="Hadir">Hadir</option>
+              <option value="Sakit">Sakit</option>
+              <option value="Izin">Izin</option>
+              <option value="Alfa">Alfa</option>
+              <option value="Telat">Telat</option>
+            </select>
+          </td>
+          <td style="width:200px"><input type="text" class="form-control form-control-sm note-input" data-index="${i}" placeholder="Catatan (opsional)"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('absensiDate').textContent = todayDate();
+    }
+
+    // Save absensi from modal
+    function saveAbsensiFromModal() {
+      const { guru, absensi } = loadData();
+      const selects = document.querySelectorAll('.status-select');
+      const notes = document.querySelectorAll('.note-input');
+      const date = todayDate();
+      const newRecords = [];
+      selects.forEach(sel => {
+        const idx = Number(sel.dataset.index);
+        const status = sel.value;
+        const noteEl = document.querySelector(`.note-input[data-index="${idx}"]`);
+        const note = noteEl ? noteEl.value.trim() : '';
+        if (guru[idx]) {
+          newRecords.push({ name: guru[idx].name, date, status, note });
+        }
+      });
+      // Remove any existing records for this date for the same teachers to avoid duplicates
+      const filtered = absensi.filter(r => r.date !== date);
+      const merged = filtered.concat(newRecords);
+      saveAbsensiRecords(merged);
+      renderGuruTable();
+      // close modal programmatically
+      const absensiModalEl = document.getElementById('absensiModal');
+      const modal = bootstrap.Modal.getInstance(absensiModalEl);
+      if (modal) modal.hide();
+      alert('Absensi harian tersimpan.');
+    }
+
+    // Generate printable rekap (all absensi records)
+    function generateRekapAndPrint() {
+      const { guru, absensi } = loadData();
+      // Build HTML
+      const printable = document.getElementById('printable');
+      printable.style.display = 'block';
+      const schoolTitle = `<h2 style="margin-bottom:0">SDI Panggajoang</h2><div style="margin-bottom:10px">Rekap Absensi Guru</div>`;
+      // Sort absensi by date desc then name
+      const sorted = [...absensi].sort((a,b) => {
+        if (a.date === b.date) return a.name.localeCompare(b.name);
+        return b.date.localeCompare(a.date);
+      });
+      let tableRows = '';
+      if (sorted.length === 0) {
+        tableRows = `<tr><td colspan="4">Belum ada data absensi.</td></tr>`;
+      } else {
+        sorted.forEach((r, i) => {
+          tableRows += `<tr>
+            <td style="text-align:center">${i + 1}</td>
+            <td>${escapeHtml(r.name)}</td>
+            <td style="text-align:center">${escapeHtml(r.date)}</td>
+            <td style="text-align:center">${escapeHtml(r.status)}${r.note ? ' - ' + escapeHtml(r.note) : ''}</td>
+          </tr>`;
+        });
+      }
+      printable.innerHTML = `
+        <div style="padding:20px; font-family: Arial, sans-serif; color:#000;">
+          ${schoolTitle}
+          <div style="margin-bottom:10px; font-size:0.9rem;">Dicetak: ${new Date().toLocaleString()}</div>
+          <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; font-size:0.95rem;">
+            <thead>
+              <tr style="background:#f1f1f1;">
+                <th style="width:60px">No</th>
+                <th>Nama Guru</th>
+                <th style="width:120px">Tanggal</th>
+                <th style="width:160px">Status / Catatan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+      // Open print dialog
+      window.print();
+      // hide printable area after print (give time for print dialog)
+      setTimeout(() => { printable.style.display = 'none'; printable.innerHTML = ''; }, 500);
+    }
+
+    // Initialize event listeners
+    function initEventListeners() {
+      // Simpan guru dari modal tambah
+      document.getElementById('simpanGuruBtn').addEventListener('click', () => {
+        const name = document.getElementById('namaGuru').value;
+        const note = document.getElementById('catatanGuru').value;
+        if (!name || !name.trim()) {
+          alert('Nama guru tidak boleh kosong.');
+          return;
+        }
+        const added = addGuru(name, note);
+        if (added) {
+          // reset form
+          document.getElementById('formTambahGuru').reset();
+          // close modal
+          const modalEl = document.getElementById('tambahGuruModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+        }
+      });
+
+      // Table action buttons (delegation)
+      document.getElementById('tbodyGuru').addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const index = Number(btn.dataset.index);
+        if (action === 'edit') {
+          openEditModal(index);
+        } else if (action === 'delete') {
+          deleteGuru(index);
+        } else if (action === 'absen') {
+          quickAbsensi(index);
+        }
+      });
+
+      // Simpan edit
+      document.getElementById('simpanEditBtn').addEventListener('click', () => {
+        const idx = Number(document.getElementById('editIndex').value);
+        const newName = document.getElementById('editNamaGuru').value;
+        const newNote = document.getElementById('editCatatanGuru').value;
+        if (!newName || !newName.trim()) {
+          alert('Nama guru tidak boleh kosong.');
+          return;
+        }
+        const data = loadData();
+        const oldName = data.guru[idx] ? data.guru[idx].name : null;
+        // perform edit
+        const success = editGuru(idx, newName, newNote);
+        if (success) {
+          // close modal
+          const modalEl = document.getElementById('editGuruModal');
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+        }
+      });
+
+      // Prepare absensi modal when opened
+      const absensiModalEl = document.getElementById('absensiModal');
+      absensiModalEl.addEventListener('show.bs.modal', () => {
+        prepareAbsensiModal();
+      });
+
+      // Save absensi from modal
+      document.getElementById('simpanAbsensiBtn').addEventListener('click', saveAbsensiFromModal);
+
+      // Rekap print
+      document.getElementById('btnRekap').addEventListener('click', generateRekapAndPrint);
+
+      // When add modal shown, focus input
+      const tambahModalEl = document.getElementById('tambahGuruModal');
+      tambahModalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById('namaGuru').focus();
+      });
+    }
+
+    // Open edit modal and populate fields
+    function openEditModal(index) {
+      const data = loadData();
+      const g = data.guru[index];
+      if (!g) return;
+      document.getElementById('editIndex').value = index;
+      document.getElementById('editNamaGuru').value = g.name;
+      document.getElementById('editCatatanGuru').value = g.note || '';
+      const editModalEl = document.getElementById('editGuruModal');
+      const modal = new bootstrap.Modal(editModalEl);
+      modal.show();
+    }
+
+    // On first load, render table
+    (function init() {
+      // Ensure storage keys exist
+      const data = loadData();
+      if (!Array.isArray(data.guru)) localStorage.setItem(STORAGE_KEYS.GURU, JSON.stringify([]));
+      if (!Array.isArray(data.absensi)) localStorage.setItem(STORAGE_KEYS.ABSENSI, JSON.stringify([]));
+      renderGuruTable();
+      initEventListeners();
+      // show last saved info if any
+      const last = localStorage.getItem('sdi_panggajoang_last_saved');
+      // we update lastSavedInfo on save functions; no need to read separate key
+    })();
+  </script>
+</body>
+</html>
